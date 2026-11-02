@@ -1,0 +1,23 @@
+# Godot 4
+.godot/
+*.translation
+export_presets.cfg.bak
+/game/android/
+/builds/
+/exports/
+
+# Secrets: keystores and store credentials never go in the repo
+*.keystore
+*.jks
+*.p12
+*.mobileprovision
+steam_appid.txt
+.env
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+.vscode/
+.idea/
+__pycache__/

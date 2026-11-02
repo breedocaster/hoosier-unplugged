@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  # Pinned engine version. Bump together with game/project.godot config/features.
+  GODOT_VERSION: "4.7.2"
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install gdtoolkit
+        run: pip install "gdtoolkit==4.5.0"
+      - name: Parse
+        run: find game -name '*.gd' -print0 | xargs -0 -n1 gdparse > /dev/null
+      - name: Lint
+        run: gdlint game
+
+  smoke:
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download Godot ${{ env.GODOT_VERSION }}
+        run: |
+          base="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable"
+          curl -fsSL -o godot.zip "${base}/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          unzip -q godot.zip
+          mv "Godot_v${GODOT_VERSION}-stable_linux.x86_64" godot
+          ./godot --version
+      - name: Import project
+        run: ./godot --headless --path game --import 2>&1 | tee import.log
+      - name: Smoke test (2-player drop-in/drop-out brawl)
+        run: |
+          ./godot --headless --path game --fixed-fps 60 --quit-after 9000 \
+            res://tests/smoke_test.tscn 2>&1 | tee smoke.log
+          grep -q "SMOKE OK" smoke.log
+      - name: Fail on script errors
+        run: |
+          if grep -nE "SCRIPT ERROR|Parse Error|Failed to load script|Invalid (call|access|assignment)" \
+              import.log smoke.log; then
+            echo "Script errors found"; exit 1
+          fi
