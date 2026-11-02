@@ -23,6 +23,11 @@ func _ready() -> void:
 	Players.reset_all()
 	Players.inject(P1, Vector2.ZERO, 0)
 	Players.inject(P2, Vector2.ZERO, 0)
+	# Compile-check scenes the stage doesn't load (title has no class_name).
+	var title: PackedScene = load("res://ui/title.tscn")
+	_expect(title != null and title.can_instantiate(), "title scene should load")
+	if title != null:
+		title.instantiate().free()
 	var scene: PackedScene = load("res://stage/stage.tscn")
 	stage = scene.instantiate() as BrawlStage
 	add_child(stage)
